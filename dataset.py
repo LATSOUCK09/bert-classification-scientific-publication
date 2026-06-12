@@ -1,1 +1,38 @@
-#TextClassificationDataset
+from torch.utils.data import Dataset
+from transformers import AutoTokenizer
+import pandas as pd
+import torch
+
+
+class TextClassificationDataset(Dataset):
+    def __init__(self, csv_file, tokenizer, max_length=256):
+        self.tokenizer = tokenizer
+        self.data = pd.read_csv(csv_file)
+        self.data = self.data.drop(columns=["ID"])
+        self.max_length = max_length
+        self.label_columns = [
+            col for col in self.data.columns if col not in ["ABSTRACT", "TITLE"]
+        ]
+
+    def __len__(self):
+        return len(self.data)
+    def __getitem__(self, idx):
+        title = self.data.loc[idx, "TITLE"]
+        abstract = self.data.loc[idx, "ABSTRACT"]
+        text = title+ " [SEP] " + abstract
+        labels = self.data.loc[idx, self.label_columns].values.astype(int)
+        encoding = self.tokenizer(
+            text,
+            padding="max_length",
+            truncation=True,
+            max_length= self.max_length,
+            return_tensors="pt"
+        )
+
+        return {
+            "input_ids": encoding["input_ids"],
+            "attention_mask": encoding["attention_mask"],
+            "labels": torch.tensor(labels, dtype=torch.float32)
+        }
+    
+
