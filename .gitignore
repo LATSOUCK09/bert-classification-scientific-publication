@@ -140,10 +140,6 @@ runs/
 .wandb/
 outputs/
 
-# Data files (keep .csv if needed, but ignore large files)
-data/*
-!data/.gitkeep
-
 # Temporary files
 *.tmp
 tmp/
