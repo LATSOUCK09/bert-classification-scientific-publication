@@ -34,8 +34,8 @@ class TextClassificationDataset(Dataset):
         )
 
         return {
-            "input_ids": encoding["input_ids"],
-            "attention_mask": encoding["attention_mask"],
+            "input_ids": encoding["input_ids"].squeeze(0),
+            "attention_mask": encoding["attention_mask"].squeeze(0),
             "labels": torch.tensor(labels, dtype=torch.float32)
         }
     
