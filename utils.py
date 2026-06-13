@@ -1,4 +1,4 @@
-﻿import random
+import random
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -24,37 +24,17 @@ def save_best_model(model, val_loss, best_val_loss, model_name):
     return best_val_loss
 
 
-def compute_metrics(preds, labels, threshold=0.5, average="weighted"):
-    """Compute accuracy, precision, recall and F1 for binary/multi-label outputs."""
-    if torch.is_tensor(preds):
-        preds = preds.detach().cpu().numpy()
-    if torch.is_tensor(labels):
-        labels = labels.detach().cpu().numpy()
 
-    preds = np.array(preds)
-    labels = np.array(labels)
-
-    if preds.ndim > 1:
-        preds = (preds >= threshold).astype(int)
-
-    accuracy = accuracy_score(labels, preds)
-    precision = precision_score(labels, preds, average=average, zero_division=0)
-    recall = recall_score(labels, preds, average=average, zero_division=0)
-    f1 = f1_score(labels, preds, average=average, zero_division=0)
-
-    return {
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-    }
-
+def compute_metrics(preds, labels):
+    acc = accuracy_score(labels, preds)
+    f1 = f1_score(labels, preds, average="weighted")
+    return acc, f1
 
 def plot_training_history(history, figsize=(10, 5), save_path=None):
-    """Plot training and validation loss and metrics over epochs."""
-    epochs = range(1, len(history.get("train_loss", [])) + 1)
-    fig, ax1 = plt.subplots(figsize=figsize)
+    """Plot training and validation loss and metrics history."""
+    epochs = list(range(1, len(history.get("train_loss", [])) + 1))
 
+    fig, ax1 = plt.subplots(figsize=figsize)
     ax1.plot(epochs, history.get("train_loss", []), label="Train Loss", marker="o")
     ax1.plot(epochs, history.get("val_loss", []), label="Val Loss", marker="o")
     ax1.set_xlabel("Epoch")
@@ -76,6 +56,6 @@ def plot_training_history(history, figsize=(10, 5), save_path=None):
     ax1.legend(lines + lines2, labels + labels2, loc="best")
     fig.tight_layout()
 
-    if save_path is not None:
+    if save_path:
         plt.savefig(save_path, dpi=150)
     plt.show()
