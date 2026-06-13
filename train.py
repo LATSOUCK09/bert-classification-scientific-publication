@@ -147,6 +147,14 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
     best_val_loss = float("inf")
 
+    history = {
+        "train_loss": [],
+        "val_loss": [],
+        "train_accuracy": [],
+        "val_f1_score": [],
+        "VAL_ACCURACY": []
+    }
+
     for epoch in range(1, EPOCHS + 1):
         train_loss, train_accuracy = train_epoch(
             model,
@@ -169,10 +177,17 @@ def main():
             "bert_multilabel"
         )
 
+        history["train_loss"].append(train_loss)
+        history["train_accuracy"].append(train_accuracy)
+        history["val_loss"].append(valid_loss)
+        history["val_f1_score"].append(valid_f1)
+        history["VAL_ACCURACY"].append(valid_accuracy)
+
         print(
             f"Epoch {epoch}/{EPOCHS} | "
-            f"train_loss={train_loss:.4f} train_acc={train_accuracy:.4f} | "
-            f"val_loss={valid_loss:.4f} val_acc={valid_accuracy:.4f} val_f1={valid_f1:.4f}"
+            f"train_loss={train_loss:.4f} train_accuracy={train_accuracy:.4f} | "
+            f"val_loss={valid_loss:.4f} VAL_ACCURACY={valid_accuracy:.4f} | "
+            f"val_f1_score={valid_f1:.4f}"
         )
 
 
