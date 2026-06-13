@@ -144,3 +144,4 @@ outputs/
 *.tmp
 tmp/
 temp/
+.ipynb
