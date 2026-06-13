@@ -7,6 +7,8 @@ from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import f1_score
 from dataset import TextClassificationDataset, create_dataloaders
+from model import BertForMultiLabelClassification
+from utils import set_seed, save_best_model
 
 #boucle d'entrainement pour une époque
 def train_epoch(
@@ -79,3 +81,100 @@ def val_epoch(model,
         val_F1_score = f1_score(all_labels, all_preds, average="weighted")
         return valid_loss, valid_accuracy, val_F1_score
 
+
+
+
+def main():
+
+    MODEL_NAME = (
+        "bert-base-uncased"
+    )
+
+    DATA_PATH = (
+        "data/scientific-publication.csv"
+    )
+
+    BATCH_SIZE = 8
+
+    MAX_LENGTH = 256
+
+    EPOCHS = 5
+
+    LR = 2e-5
+
+    device = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+    print(
+        f"Device : {device}"
+    )
+
+    tokenizer = (
+        AutoTokenizer
+        .from_pretrained(
+            MODEL_NAME
+        )
+    )
+
+    dataset = (
+        TextClassificationDataset(
+            csv_file=DATA_PATH,
+            tokenizer=tokenizer,
+            max_length=MAX_LENGTH
+        )
+    )
+
+    train_loader, val_loader = (
+        create_dataloaders(
+            dataset,
+            batch_size=BATCH_SIZE
+        )
+    )
+
+    model = (
+        BertForMultiLabelClassification(
+            MODEL_NAME,
+            n_class=6
+        )
+        .to(device)
+    )
+
+    set_seed()
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
+    best_val_loss = float("inf")
+
+    for epoch in range(1, EPOCHS + 1):
+        train_loss, train_accuracy = train_epoch(
+            model,
+            optimizer,
+            criterion,
+            train_loader,
+            device=device
+        )
+        valid_loss, valid_accuracy, valid_f1 = val_epoch(
+            model,
+            val_loader,
+            criterion,
+            device=device
+        )
+
+        best_val_loss = save_best_model(
+            model,
+            valid_loss,
+            best_val_loss,
+            "bert_multilabel"
+        )
+
+        print(
+            f"Epoch {epoch}/{EPOCHS} | "
+            f"train_loss={train_loss:.4f} train_acc={train_accuracy:.4f} | "
+            f"val_loss={valid_loss:.4f} val_acc={valid_accuracy:.4f} val_f1={valid_f1:.4f}"
+        )
+
+
+if __name__ == "__main__":
+    main()
