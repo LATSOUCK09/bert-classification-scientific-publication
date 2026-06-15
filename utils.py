@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import pandas as pd
 import torch
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -59,3 +60,42 @@ def plot_training_history(history, figsize=(10, 5), save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150)
     plt.show()
+
+
+def weight_ponderation(dataset=pd.read_csv("C:/Users/msqur/Documents/Master2_IA/Deep_learning_2/devoir3/data/train_5.csv")):
+    label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
+    class_counts = dataset[label_columns].sum()
+    n_samples = len(dataset)
+    pos_weights = []
+    for col in label_columns:
+        positive_count = dataset[col].sum()
+        negative_count = n_samples - positive_count
+        weights = negative_count / positive_count
+        pos_weights.append(weights)
+
+    pos_weights = torch.tensor(pos_weights,
+                               dtype=torch.float32)
+    return pos_weights
+
+def ponderation_sampling(dataset=pd.read_csv("C:/Users/msqur/Documents/Master2_IA/Deep_learning_2/devoir3/data/train_5.csv")):
+    label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
+    n_samples = len(dataset)
+    class_weights = {}
+    for col in label_columns:
+        count = dataset[col].sum()
+        class_weights[col] = n_samples / count
+    sample_weights = []
+
+    for _, row in dataset.iterrows():
+        active_classes = []
+        for col in label_columns:
+            if row[col] == 1:
+                active_classes.append(
+                    class_weights[col]
+                )
+        sample_weights.append(
+            np.mean(active_classes)
+        )
+    sample_weights = torch.DoubleTensor(
+    sample_weights)
+    return sample_weights

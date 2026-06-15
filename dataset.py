@@ -42,7 +42,8 @@ def create_dataloaders(
     dataset,
     batch_size=8,
     train_ratio=0.8,
-    seed=42
+    seed=42,
+    sampler=None
 ):
 
     train_size = int(train_ratio * len(dataset))
@@ -56,10 +57,12 @@ def create_dataloaders(
         generator=generator
     )
 
+    # Si un sampler est fourni, shuffle doit être False car le sampler gère l'ordre
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True
+        shuffle=(sampler is None),
+        sampler=sampler
     )
 
     val_loader = DataLoader(

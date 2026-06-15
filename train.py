@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.metrics import f1_score
 from dataset import TextClassificationDataset, create_dataloaders
 from model import BertForMultiLabelClassification
-from utils import set_seed, save_best_model
+from utils import set_seed, save_best_model, compute_metrics, ponderation_loss
 
 #boucle d'entrainement pour une époque
 def train_epoch(
@@ -19,32 +19,30 @@ def train_epoch(
         device="cpu"):
     
     train_loss = 0.0
-    correct = 0.0
-    total = 0.0
+    all_preds = []
+    all_labels = []
     model.train()
-    
+
     num_batches = len(train_loader)
-        # Barre de progression
     progress_bar = tqdm(train_loader, desc="Training", leave=False)
     for batch in progress_bar:
-        optimizer.zero_grad() # réinitialiser les gradients pour le prochain batch
+        optimizer.zero_grad()
         inputs = batch["input_ids"].to(device)
-        target = batch["labels"].to(device)
+        labels = batch["labels"]
         attention_mask = batch["attention_mask"].to(device)
         output = model(inputs, attention_mask=attention_mask)
-        loss = criterion(output, target)
+        loss = criterion(output, labels.to(device))
         loss.backward()
-        optimizer.step()  # mettre à jour les poids du modèle
-        
-        train_loss += loss.item()   # stocker la valeur de la perte pour cette itération
-        #preds = torch.argmax(output, dim=1)
-        #ici nous allons chaner la fonctions argsmax pour la fonction sigmoid et faire une comparaison avec un seuil de 0.5 pour les problèmes de classification binaire
+        optimizer.step()
+
+        train_loss += loss.item()
         preds = (torch.sigmoid(output) > 0.5).float()
-        correct += (preds == target).sum().item()
-        total += target.size(0)            
-    train_loss = train_loss / num_batches # calculer la perte moyenne pour cette époque
-    train_accuracy = correct / total 
-    return train_loss, train_accuracy
+        all_preds.extend(preds.cpu().numpy())
+        all_labels.extend(labels.cpu().numpy())
+
+    train_loss = train_loss / num_batches
+    train_acc, _ = compute_metrics(all_preds, all_labels)
+    return train_loss, train_acc
 
 
 #boucle d'évaluation pour une époque
@@ -64,22 +62,20 @@ def val_epoch(model,
             pbar=tqdm(val_loader, desc="Validation", unit="batch")
             for batch in pbar:
                 inputs = batch["input_ids"].to(device)
-                targets = batch["labels"].to(device)
+                labels = batch["labels"].to(device) # Move labels to device immediately
                 attention_mask = batch["attention_mask"].to(device)
                 output = model(inputs, attention_mask=attention_mask)
-                loss = criterion(output, targets)
+                loss = criterion(output, labels)
                 valid_loss += loss.data.item()
-                #preds=torch.argmax(output,dim=1)
                 #ici nous allons chaner la fonctions argsmax pour la fonction sigmoid et faire une comparaison avec un seuil de 0.5 pour les problèmes de classification binaire
                 preds = (torch.sigmoid(output) > 0.5).float()
-                correct += (preds==targets).sum().item()
-                total += targets.size(0)
+                correct += (preds==labels).sum().item()
+                total += labels.size(0)
                 all_preds.extend(preds.cpu().numpy())
-                all_labels.extend(targets.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
         valid_loss = valid_loss / len(val_loader) # calculer la perte moyenne pour cette époque
-        valid_accuracy = correct / total    
-        val_F1_score = f1_score(all_labels, all_preds, average="weighted")
-        return valid_loss, valid_accuracy, val_F1_score
+        acc, f1 = compute_metrics(all_preds, all_labels)
+        return valid_loss, acc, f1
 
 
 
@@ -146,7 +142,8 @@ def main():
     )
 
     set_seed()
-    criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights.to(device))
+    pos_weights = ponderation_loss()
+    criterion = nn.BCEWithLogitsLoss(pos_weights.to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
     best_val_loss = float("inf")
 
@@ -155,7 +152,7 @@ def main():
         "val_loss": [],
         "train_accuracy": [],
         "val_f1_score": [],
-        "VAL_ACCURACY": []
+        "val_accuracy": []
     }
 
     for epoch in range(1, EPOCHS + 1):
@@ -184,12 +181,12 @@ def main():
         history["train_accuracy"].append(train_accuracy)
         history["val_loss"].append(valid_loss)
         history["val_f1_score"].append(valid_f1)
-        history["VAL_ACCURACY"].append(valid_accuracy)
+        history["val_accuracy"].append(valid_accuracy)
 
         print(
             f"Epoch {epoch}/{EPOCHS} | "
             f"train_loss={train_loss:.4f} train_accuracy={train_accuracy:.4f} | "
-            f"val_loss={valid_loss:.4f} VAL_ACCURACY={valid_accuracy:.4f} | "
+            f"val_loss={valid_loss:.4f} val_accuracy={valid_accuracy:.4f} | "
             f"val_f1_score={valid_f1:.4f}"
         )
 
