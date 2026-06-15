@@ -87,7 +87,7 @@ def main():
 
     MODEL_NAME = "bert-base-uncased"
     DATA_PATH = "data/scientific-publication.csv"
-    BATCH_SIZE = 8
+    BATCH_SIZE = 16
     MAX_LENGTH = 256
     EPOCHS = 5
     LR = 2e-5
@@ -115,6 +115,7 @@ def main():
     model = BertForMultiLabelClassification(MODEL_NAME, n_class=6).to(device)
 
     pos_weights = weight_ponderation(df)
+    print(f"Pos weights pour les classes : {pos_weights.tolist()}")
     criterion = nn.BCEWithLogitsLoss(pos_weights.to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
     best_val_loss = float("inf")
