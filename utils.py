@@ -5,6 +5,8 @@ import torch
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
+import dataset
+
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -81,4 +83,68 @@ def weight_ponderation(dataset=None):
 
     pos_weights = torch.tensor(pos_weights, dtype=torch.float32)
     return pos_weights
+
+
+def weighted_sampling(dataset=None, indices=None, replacement=True):
+    """Build a WeightedRandomSampler from a pandas DataFrame.
+
+    Parameters
+    - dataset: pandas.DataFrame containing label columns (excludes ID/TITLE/ABSTRACT)
+    - indices: optional list/sequence of row indices to restrict the sampler to a subset
+    - replacement: whether sampling is with replacement
+
+    Returns a `torch.utils.data.WeightedRandomSampler` ready to pass to a `DataLoader`.
+    """
+    if dataset is None:
+        raise ValueError(
+            "Le paramètre 'dataset' est requis pour weight_ponderation. "
+            "Passez un DataFrame pandas déjà chargé."
+        )
+
+    drop_columns = [col for col in ["ID", "TITLE", "ABSTRACT"] if col in dataset.columns]
+    label_columns = dataset.drop(columns=drop_columns).columns
+    n_samples = len(dataset)
+    class_weights = {}
+    for col in label_columns:
+        count = dataset[col].sum()
+        class_weights[col] = n_samples / count
+    sample_weights = []
+
+    for _, row in dataset.iterrows():
+        active_classes = []
+        for col in label_columns:
+            if row[col] == 1:
+                active_classes.append(
+                    class_weights[col]
+                )
+        # If no active classes for this sample, give it a default weight=1.0
+        if len(active_classes) == 0:
+            sample_weights.append(1.0)
+        else:
+            sample_weights.append(np.mean(active_classes))
+
+    # Convert to tensor of weights per sample and build a WeightedRandomSampler
+    cleaned_weights = []
+    for w in sample_weights:
+        if np.isnan(w) or np.isinf(w):
+            cleaned_weights.append(1.0)
+        else:
+            cleaned_weights.append(float(w))
+
+    # If indices provided, select only those sample weights (useful when using Subset)
+    if indices is not None:
+        subset_weights = [cleaned_weights[i] for i in indices]
+        weights_tensor = torch.DoubleTensor(subset_weights)
+        num_samples = len(subset_weights)
+    else:
+        weights_tensor = torch.DoubleTensor(cleaned_weights)
+        num_samples = len(weights_tensor)
+
+    sampler = torch.utils.data.WeightedRandomSampler(
+        weights=weights_tensor,
+        num_samples=num_samples,
+        replacement=replacement,
+    )
+
+    return sampler
 
