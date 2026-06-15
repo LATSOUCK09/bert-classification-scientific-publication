@@ -134,11 +134,19 @@ Thumbs.db
 *.pickle
 *.h5
 *.hdf5
+*.pth
+*.pt
+*.bin
 models/
 checkpoints/
 runs/
 .wandb/
 outputs/
+
+# Hugging Face cache and weights
+.huggingface/
+transformers_cache/
+cache/
 
 # Temporary files
 *.tmp

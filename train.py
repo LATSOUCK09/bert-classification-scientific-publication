@@ -127,6 +127,9 @@ def main():
         )
     )
 
+    class_weights = dataset.compute_class_weights()
+    print(f"Pos weights pour les classes : {class_weights.tolist()}")
+
     train_loader, val_loader = (
         create_dataloaders(
             dataset,
@@ -143,7 +146,7 @@ def main():
     )
 
     set_seed()
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights.to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
     best_val_loss = float("inf")
 
