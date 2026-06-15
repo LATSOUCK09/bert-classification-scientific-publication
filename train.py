@@ -1,6 +1,7 @@
  #  boucles train_epoch / eval_epoch + main
 import torch
 import torch.nn as nn
+import pandas as pd
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from tqdm import tqdm
@@ -8,7 +9,7 @@ import numpy as np
 from sklearn.metrics import f1_score
 from dataset import TextClassificationDataset, create_dataloaders
 from model import BertForMultiLabelClassification
-from utils import set_seed, save_best_model, compute_metrics, ponderation_loss
+from utils import set_seed, save_best_model, compute_metrics, weighted_sampling, weight_ponderation
 
 #boucle d'entrainement pour une époque
 def train_epoch(
@@ -82,64 +83,38 @@ def val_epoch(model,
 
 def main():
 
-    MODEL_NAME = (
-        "bert-base-uncased"
-    )
+    set_seed()
 
-    DATA_PATH = (
-        "data/scientific-publication.csv"
-    )
-
+    MODEL_NAME = "bert-base-uncased"
+    DATA_PATH = "data/scientific-publication.csv"
     BATCH_SIZE = 8
-
     MAX_LENGTH = 256
-
     EPOCHS = 5
-
     LR = 2e-5
 
-    device = torch.device(
-        "cuda"
-        if torch.cuda.is_available()
-        else "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Device : {device}")
+
+    df = pd.read_csv(DATA_PATH)
+
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+
+    dataset = TextClassificationDataset(
+        csv_file=DATA_PATH,
+        tokenizer=tokenizer,
+        max_length=MAX_LENGTH
     )
 
-    print(
-        f"Device : {device}"
+    sampler = weighted_sampling(df)
+    train_loader, val_loader = create_dataloaders(
+        dataset,
+        batch_size=BATCH_SIZE,
+        sampler=sampler
     )
 
-    tokenizer = (
-        AutoTokenizer
-        .from_pretrained(
-            MODEL_NAME
-        )
-    )
+    model = BertForMultiLabelClassification(MODEL_NAME, n_class=6).to(device)
 
-    dataset = (
-        TextClassificationDataset(
-            csv_file=DATA_PATH,
-            tokenizer=tokenizer,
-            max_length=MAX_LENGTH
-        )
-    )
-
-    train_loader, val_loader = (
-        create_dataloaders(
-            dataset,
-            batch_size=BATCH_SIZE
-        )
-    )
-
-    model = (
-        BertForMultiLabelClassification(
-            MODEL_NAME,
-            n_class=6
-        )
-        .to(device)
-    )
-
-    set_seed()
-    pos_weights = ponderation_loss()
+    pos_weights = weight_ponderation(df)
     criterion = nn.BCEWithLogitsLoss(pos_weights.to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
     best_val_loss = float("inf")
