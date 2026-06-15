@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, random_split, WeightedRandomSampler
 import pandas as pd
 import torch
 import torch
@@ -37,7 +37,6 @@ class TextClassificationDataset(Dataset):
         }
     
 
-
 def create_dataloaders(
     dataset,
     batch_size=8,
@@ -57,12 +56,16 @@ def create_dataloaders(
         generator=generator
     )
 
-    # Si un sampler est fourni, shuffle doit être False car le sampler gère l'ordre
+    train_sampler = None
+    if sampler is not None:
+        train_weights = sampler[train_dataset.indices]
+        train_sampler = WeightedRandomSampler(train_weights, len(train_dataset))
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=(sampler is None),
-        sampler=sampler
+        shuffle=(train_sampler is None),
+        sampler=train_sampler
     )
 
     val_loader = DataLoader(
