@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.metrics import f1_score
 from dataset import TextClassificationDataset, create_dataloaders
 from model import BertForMultiLabelClassification
-from utils import set_seed, save_best_model, compute_metrics, ponderation_loss
+from utils import set_seed, save_best_model, compute_metrics, weight_ponderation
 
 #boucle d'entrainement pour une époque
 def train_epoch(
@@ -89,8 +89,7 @@ def main():
     DATA_PATH = (
         "data/scientific-publication.csv"
     )
-
-    BATCH_SIZE = 8
+    BATCH_SIZE = 16
 
     MAX_LENGTH = 256
 
@@ -123,9 +122,6 @@ def main():
         )
     )
 
-    class_weights = dataset.compute_class_weights()
-    print(f"Pos weights pour les classes : {class_weights.tolist()}")
-
     train_loader, val_loader = (
         create_dataloaders(
             dataset,
@@ -142,7 +138,8 @@ def main():
     )
 
     set_seed()
-    pos_weights = ponderation_loss()
+    pos_weights = weight_ponderation(dataset.data)
+    print(f"Pos weights pour les classes : {pos_weights.tolist()}")
     criterion = nn.BCEWithLogitsLoss(pos_weights.to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
     best_val_loss = float("inf")
