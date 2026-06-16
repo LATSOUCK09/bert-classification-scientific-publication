@@ -12,7 +12,8 @@ from model import BertForMultiLabelClassification   # votre fichier model.py
 # Configuration 
 
 MODEL_NAME  = "bert-base-uncased"
-MODEL_PATH  = "best_bert_multilabel.pth"
+#MODEL_PATH  = "best_bert_multilabel.pth"
+MODEL_PATH  = "C:\\Users\\iboug\\Desktop\\bert-classification-scientific publication\\bert_multilabel_best_model .pt" # test du model entrainer avec la weight_ponderation sans sampler
 MAX_LENGTH  = 256
 THRESHOLD   = 0.5
 
@@ -196,5 +197,5 @@ if __name__ == "__main__":
     demo.launch(
         server_name="localhost",
         server_port=7860,
-        share=False,  # True pour un lien public temporaire
+        share=True,  # True pour un lien public temporaire
     )

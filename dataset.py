@@ -39,7 +39,7 @@ class TextClassificationDataset(Dataset):
 
 def create_dataloaders(
     dataset,
-    batch_size=8,
+    batch_size=16,
     train_ratio=0.8,
     seed=42,
     sampler=None

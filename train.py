@@ -78,9 +78,6 @@ def val_epoch(model,
         acc, f1 = compute_metrics(all_preds, all_labels)
         return valid_loss, acc, f1
 
-
-
-
 def main():
 
     set_seed()
@@ -104,7 +101,7 @@ def main():
         tokenizer=tokenizer,
         max_length=MAX_LENGTH
     )
-
+    #ajout de la pondération des classes pour le sampler pour voir si cela améliore les performances du modèle
     sampler = weighted_sampling(df)
     train_loader, val_loader = create_dataloaders(
         dataset,

@@ -84,4 +84,18 @@ def weight_ponderation(dataset=None):
     return pos_weights
 
 
+def weighted_sampling(dataset=None):
+    if dataset is None:
+        raise ValueError(
+            "Le paramètre 'dataset' est requis pour weighted_sampling. "
+            "Passez un DataFrame pandas déjà chargé."
+        )
 
+    label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
+    n_samples = len(dataset)
+    class_weights = {col: n_samples / dataset[col].sum() for col in label_columns}
+    sample_weights = []
+    for _, row in dataset.iterrows():
+        active = [class_weights[col] for col in label_columns if row[col] == 1]
+        sample_weights.append(np.mean(active))
+    return torch.DoubleTensor(sample_weights)
