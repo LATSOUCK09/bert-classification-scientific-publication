@@ -59,12 +59,9 @@ Chaque ligne contient :
 | Quantitative Biology | 587         |
 | Quantitative Finance | 249         |
 
-On observe un fort déséquilibre de classes, notamment pour :
 
-* Quantitative Biology
-* Quantitative Finance
-
-Ce déséquilibre a été traité grâce à l'utilisation de poids de classes dans la fonction de perte.
+- Une fonction de coût pondérée (***BCEWithLogitsLoss*** avec pos_weight). Cette approche est particulièrement adaptée à la classification multilabel car elle augmente la pénalité associée aux erreurs commises sur les classes rares sans modifier artificiellement la distribution du dataset.
+- ***WeightedRandomSampler*** est une autre stratégie pour lutter contre le déséquilibre des classes. Au lieu de modifier la loss, il modifie la probabilité qu'un échantillon soit tiré dans un batch. Les poids sont calculés pour chaque article à partir des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement.
 
 ## Exemples du dataset
 
@@ -119,8 +116,6 @@ Quantitative Biology
 
 Le projet utilise :
 
-```text
-bert-base-uncased
 ```bash 
 BertForMultiLabelClassification
 ```
@@ -134,16 +129,17 @@ Titre + Abstract
         │
 Tokenizer BERT
         │
-bert-base-uncased
 BertForMultiLabelClassification
         │
 Pooler Output (768)
         │
 Linear(768 → 6)
         │
+Logits
         │
 6 probabilités
 ```
+Lors de l'inférence, une fonction Sigmoid est appliquée aux logits afin d'obtenir une probabilité indépendante pour chaque classe.
 
 ## Tokenizer
 
@@ -160,6 +156,8 @@ Choix effectués :
 
 Le texte d'entrée est construit comme suit :
 
+```Bash
+TITLE "[SEP]" ABSTRACT
 ```
 
 ## Tête de classification
@@ -216,6 +214,7 @@ pour compenser le déséquilibre du dataset.
 
 ### Étape 2 : Prétraitement
 
+* Concaténation du titre et du résumé
 * Tokenisation avec BERT
 * Padding et troncature
 
@@ -226,6 +225,7 @@ pour compenser le déséquilibre du dataset.
 
 ### Étape 4 : Entraînement
 
+* Split multilabel stratifié 80/20
 * Fine-tuning complet de BERT
 * Sauvegarde du meilleur modèle
 
@@ -265,6 +265,7 @@ Pour régler ce problème de déséquilibre des classes, nous avons choisi d'agi
 Pour regler ce probleme de desequilibre nous avons penser a agir dans deux niveaux differents premiere est la fonction weight_ponderation  qui attaque la fonction Loss et la fonction weighted_sampling qui agit au niveau du sampling des données.
 >>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
 
+**La fonction weight_ponderation** calcule les poids qui seront utilisé avec BCEWithLogitsLoss
 Pour chaque classe, les exemples positifs correspondent aux articles possédant cette étiquette (valeur 1), tandis que les exemples négatifs correspondent aux articles ne possédant pas cette étiquette (valeur 0). Le rapport entre le nombre d'exemples négatifs et positifs est utilisé pour calculer un poids permettant de mieux prendre en compte les classes sous-représentées lors de l'entraînement du modèle.
 
 ```python
@@ -384,6 +385,7 @@ Le fine-tuning de BERT est coûteux en calcul.
 
 Solution :
 
+* utilisation du GPU CUDA (**colab**, **kaggle**)
 * batch size adapté à la mémoire disponible
 
 ---
@@ -393,12 +395,17 @@ Solution :
 ## Courbes d'entraînement et de validation
 
 
+<<<<<<< HEAD
 ```text
 Courbes d'entraînement et de validation obtenues avec la pondération des classes (weight_ponderation)
 ```
 
 ![Courbes](graph/loss_curve.png)
 ![Courbes](graph/metric_curve.png)
+=======
+![Courbes](figs/learning_curves_weights_and_sampling.png)
+
+>>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
 Les courbes montrent :
 
 * une diminution progressive de la loss
@@ -411,23 +418,34 @@ Les courbes montrent :
 
 | Métrique            | Valeur |
 | ------------------- | ------ |
+<<<<<<< HEAD
 | Validation Loss     |0.5195  |
 | Validation Accuracy |0.6319  |
 | Validation F1-Score |0.8250  |
 ```text
 Métriques finales avec la pondération des classes (weight_ponderation)
 ```
+=======
+| Validation Loss     | 0.5280 |
+| Validation Accuracy | 0.6381 |
+| Validation F1-Score | 0.8269 |
+
+>>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
 
 ---
 
 ## Matrice de confusion
 
 
+<<<<<<< HEAD
 ```text
 Matrice de confusion obtenues avec la pondération des classes (weight_ponderation)
 ```
 
 ![Confusion Matrix](graph/confusion_matrix.png)
+=======
+![Confusion Matrix](figs/confusion_matrix_weight_and_sampling.png)
+>>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
 
 Analyse :
 
@@ -539,9 +557,9 @@ bert-classification-scientific-publication/
 ├── utils.py
 ├── demo.py
 │
-├── screenshots/
-│   ├── training_curves.png
-│   ├── confusion_matrix.png
+├── figs/
+│   ├── training_curves_weights_and_sampling.png
+│   ├── confusion_matrix_weights_and_sampling.png
 │   └── gradio_demo.png
 │
 ├── requirements.txt
@@ -555,7 +573,6 @@ bert-classification-scientific-publication/
 * Utiliser SciBERT à la place de BERT.
 * Ajuster automatiquement le seuil de décision par classe.
 * Ajouter Precision et Recall par classe.
-* Tester des techniques de Focal Loss.
 * Ajouter un ensemble de test indépendant.
 * Déployer l'application sur Hugging Face Spaces ou Streamlit Cloud.
 
