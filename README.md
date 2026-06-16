@@ -1,4 +1,4 @@
-﻿#  Classification Multi-Label de Publications Scientifiques avec BERT
+#  Classification Multi-Label de Publications Scientifiques avec BERT
 
 ## 1. Présentation du projet
 
@@ -307,7 +307,7 @@ def weighted_sampling(dataset=None):
                 active = [class_weights[col] for col in label_columns if row[col] == 1]
                 sample_weights.append(np.mean(active))
         return torch.DoubleTensor(sample_weights)
-```
+```       
 ---
 
 ## Classification multi-label
@@ -363,7 +363,7 @@ Courbes d'entraînement et de validation obtenues avec la pondération des class
 ```
 
 ![Courbes](graph/loss_curve.png)
-![Courbes](graph/metric_curve.png)
+![Courbes](graph/metrics_curve.png)
 
 ```text
 Courbes d'entraînement et de validation du modèle utilisant la combinaison de weight_ponderation et weighted_sampling.
@@ -393,7 +393,7 @@ Métriques finales avec la pondération des classes (weight_ponderation)
 | Validation Loss     |0.5280  |
 | Validation Accuracy |0.6381  |
 | Validation F1-Score |0.8269  |
-
+```text
 Métriques finales apres combinaison de weight_ponderation et weighted_sampling.
 ---
 
@@ -435,11 +435,15 @@ L'application permet :
 demonstartion du modele entrainer avec la pondération des classes (weight_ponderation)
 ```
 
-![Gradio Demo](gradio/demo1.png)
+![Gradio Demo](graph/demo1.png)
+```text
 Ici, nous avons testé notre modèle avec un article d’intelligence artificielle. Comme le montre l'image ci-dessous, le modèle a fourni une prédiction correcte de 95% pour computer science .
+```
 
-![Gradio Demo](gradio/demo2.png)
+![Gradio Demo](graph/demo2.png)
+```text
 Ici, nous avons testé notre modèle avec un article appartenant à une de nos classes rares, la Quantitative Biology. Comme le montre l’image ci-dessous, le modèle a fourni une prédiction correcte à 100 %, malgré les inquiétudes que nous avions concernant le déséquilibre des classes.
+```
 ---
 
 
@@ -450,7 +454,7 @@ Ici, nous avons testé notre modèle avec un article appartenant à une de nos c
 ```bash
 git clone https://github.com/LATSOUCK09/bert-classification-scientific-publication.git
 
-db bert-classification-scientific-publication
+cd bert-classification-scientific-publication
 ```
 
 ## Créer un environnement virtuel
