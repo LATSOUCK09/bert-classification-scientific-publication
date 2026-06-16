@@ -121,6 +121,8 @@ Le projet utilise :
 
 ```text
 bert-base-uncased
+```bash 
+BertForMultiLabelClassification
 ```
 
 proposé par Hugging Face.
@@ -133,12 +135,12 @@ Titre + Abstract
 Tokenizer BERT
         │
 bert-base-uncased
+BertForMultiLabelClassification
         │
 Pooler Output (768)
         │
 Linear(768 → 6)
         │
-Sigmoid
         │
 6 probabilités
 ```
@@ -158,8 +160,6 @@ Choix effectués :
 
 Le texte d'entrée est construit comme suit :
 
-```text
-TITLE [SEP] ABSTRACT
 ```
 
 ## Tête de classification
@@ -216,7 +216,6 @@ pour compenser le déséquilibre du dataset.
 
 ### Étape 2 : Prétraitement
 
-* Fusion du titre et du résumé
 * Tokenisation avec BERT
 * Padding et troncature
 
@@ -227,7 +226,6 @@ pour compenser le déséquilibre du dataset.
 
 ### Étape 4 : Entraînement
 
-* Split 80 % / 20 %
 * Fine-tuning complet de BERT
 * Sauvegarde du meilleur modèle
 
@@ -260,10 +258,13 @@ Computer Science : 8594 exemples
 
 Solution :
 
+<<<<<<< HEAD
 Pour régler ce problème de déséquilibre des classes, nous avons choisi d'agir à deux niveaux différents. Le premier est la fonction **weight_ponderation**, qui agit sur la fonction de perte (*Loss Function*). Le second est la fonction **weighted_sampling**, qui agit au niveau du **DataLoader** en donnant davantage de chances aux exemples issus des classes les moins représentées d'être sélectionnés lors de l'entraînement.
 
+=======
+Pour regler ce probleme de desequilibre nous avons penser a agir dans deux niveaux differents premiere est la fonction weight_ponderation  qui attaque la fonction Loss et la fonction weighted_sampling qui agit au niveau du sampling des données.
+>>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
 
-**La fonction weight_ponderation** calcul les poids qui seront utiliser avec BCEWithLogitsLoss
 Pour chaque classe, les exemples positifs correspondent aux articles possédant cette étiquette (valeur 1), tandis que les exemples négatifs correspondent aux articles ne possédant pas cette étiquette (valeur 0). Le rapport entre le nombre d'exemples négatifs et positifs est utilisé pour calculer un poids permettant de mieux prendre en compte les classes sous-représentées lors de l'entraînement du modèle.
 
 ```python
@@ -298,6 +299,7 @@ def weighted_sampling(dataset=None):
                 "Passez un DataFrame pandas déjà chargé."
                 )
 
+<<<<<<< HEAD
         label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
         n_samples = len(dataset)
         class_weights = {col: n_samples / dataset[col].sum() for col in label_columns}
@@ -307,6 +309,41 @@ def weighted_sampling(dataset=None):
                 sample_weights.append(np.mean(active))
         return torch.DoubleTensor(sample_weights)
 ```       
+=======
+            drop_columns = [col for col in ["ID", "TITLE", "ABSTRACT"] if col in dataset.columns]
+            label_columns = dataset.drop(columns=drop_columns).columns
+            n_samples = len(dataset)
+            pos_weights = []
+            for col in label_columns:
+                positive_count = dataset[col].sum()
+                negative_count = n_samples - positive_count
+                weights = negative_count / positive_count
+                pos_weights.append(weights)
+                pos_weights = torch.tensor(pos_weights, dtype=torch.float32)
+                return pos_weights
+
+
+        BCEWithLogitsLoss(pos_weight=...)```
+
+**La fonction weighted_sampling()** calcule un poids pour chaque article en fonction de la fréquence des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement grâce à un WeightedRandomSampler. Cette approche permet d'améliorer la représentation des classes sous-représentées dans les lots d'entraînement et de limiter les effets du déséquilibre du datase
+
+        ```python
+        def weighted_sampling(dataset=None):
+             if dataset is None:
+                        raise ValueError(
+                        "Le paramètre 'dataset' est requis pour weighted_sampling. "
+                        "Passez un DataFrame pandas déjà chargé."
+                        )
+
+                label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
+                n_samples = len(dataset)
+                class_weights = {col: n_samples / dataset[col].sum() for col in label_columns}
+                sample_weights = []
+                for _, row in dataset.iterrows():
+                        active = [class_weights[col] for col in label_columns if row[col] == 1]
+                        sample_weights.append(np.mean(active))
+                return torch.DoubleTensor(sample_weights)```       
+>>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
 ---
 
 ## Classification multi-label
@@ -347,7 +384,6 @@ Le fine-tuning de BERT est coûteux en calcul.
 
 Solution :
 
-* utilisation du GPU CUDA
 * batch size adapté à la mémoire disponible
 
 ---
