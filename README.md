@@ -259,13 +259,7 @@ Computer Science : 8594 exemples
 
 Solution :
 
-<<<<<<< HEAD
 Pour régler ce problème de déséquilibre des classes, nous avons choisi d'agir à deux niveaux différents. Le premier est la fonction **weight_ponderation**, qui agit sur la fonction de perte (*Loss Function*). Le second est la fonction **weighted_sampling**, qui agit au niveau du **DataLoader** en donnant davantage de chances aux exemples issus des classes les moins représentées d'être sélectionnés lors de l'entraînement.
-
-=======
-Pour regler ce probleme de desequilibre nous avons penser a agir dans deux niveaux differents premiere est la fonction weight_ponderation  qui attaque la fonction Loss et la fonction weighted_sampling qui agit au niveau du sampling des données.
->>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
-
 **La fonction weight_ponderation** calcule les poids qui seront utilisé avec BCEWithLogitsLoss
 Pour chaque classe, les exemples positifs correspondent aux articles possédant cette étiquette (valeur 1), tandis que les exemples négatifs correspondent aux articles ne possédant pas cette étiquette (valeur 0). Le rapport entre le nombre d'exemples négatifs et positifs est utilisé pour calculer un poids permettant de mieux prendre en compte les classes sous-représentées lors de l'entraînement du modèle.
 
@@ -301,7 +295,6 @@ def weighted_sampling(dataset=None):
                 "Passez un DataFrame pandas déjà chargé."
                 )
 
-<<<<<<< HEAD
         label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
         n_samples = len(dataset)
         class_weights = {col: n_samples / dataset[col].sum() for col in label_columns}
@@ -310,43 +303,7 @@ def weighted_sampling(dataset=None):
                 active = [class_weights[col] for col in label_columns if row[col] == 1]
                 sample_weights.append(np.mean(active))
         return torch.DoubleTensor(sample_weights)
-```       
-=======
-            drop_columns = [col for col in ["ID", "TITLE", "ABSTRACT"] if col in dataset.columns]
-            label_columns = dataset.drop(columns=drop_columns).columns
-            n_samples = len(dataset)
-            pos_weights = []
-            for col in label_columns:
-                positive_count = dataset[col].sum()
-                negative_count = n_samples - positive_count
-                weights = negative_count / positive_count
-                pos_weights.append(weights)
-                pos_weights = torch.tensor(pos_weights, dtype=torch.float32)
-                return pos_weights
-
-
-        BCEWithLogitsLoss(pos_weight=...)```
-
-**La fonction weighted_sampling()** calcule un poids pour chaque article en fonction de la fréquence des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement grâce à un WeightedRandomSampler. Cette approche permet d'améliorer la représentation des classes sous-représentées dans les lots d'entraînement et de limiter les effets du déséquilibre du datase
-
-        ```python
-        def weighted_sampling(dataset=None):
-             if dataset is None:
-                        raise ValueError(
-                        "Le paramètre 'dataset' est requis pour weighted_sampling. "
-                        "Passez un DataFrame pandas déjà chargé."
-                        )
-
-                label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
-                n_samples = len(dataset)
-                class_weights = {col: n_samples / dataset[col].sum() for col in label_columns}
-                sample_weights = []
-                for _, row in dataset.iterrows():
-                        active = [class_weights[col] for col in label_columns if row[col] == 1]
-                        sample_weights.append(np.mean(active))
-                return torch.DoubleTensor(sample_weights)```       
->>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
----
+```       ---
 
 ## Classification multi-label
 
@@ -396,18 +353,12 @@ Solution :
 ## Courbes d'entraînement et de validation
 
 
-<<<<<<< HEAD
 ```text
 Courbes d'entraînement et de validation obtenues avec la pondération des classes (weight_ponderation)
 ```
 
 ![Courbes](graph/loss_curve.png)
-![Courbes](graph/metric_curve.png)
-=======
-![Courbes](figs/learning_curves_weights_and_sampling.png)
-
->>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
-Les courbes montrent :
+![Courbes](graph/metric_curve.png)Les courbes montrent :
 
 * une diminution progressive de la loss
 * une amélioration des performances de validation
@@ -419,36 +370,21 @@ Les courbes montrent :
 
 | Métrique            | Valeur |
 | ------------------- | ------ |
-<<<<<<< HEAD
 | Validation Loss     |0.5195  |
 | Validation Accuracy |0.6319  |
 | Validation F1-Score |0.8250  |
 ```text
 Métriques finales avec la pondération des classes (weight_ponderation)
-```
-=======
-| Validation Loss     | 0.5280 |
-| Validation Accuracy | 0.6381 |
-| Validation F1-Score | 0.8269 |
-
->>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
-
----
+```---
 
 ## Matrice de confusion
 
 
-<<<<<<< HEAD
 ```text
 Matrice de confusion obtenues avec la pondération des classes (weight_ponderation)
 ```
 
-![Confusion Matrix](graph/confusion_matrix.png)
-=======
-![Confusion Matrix](figs/confusion_matrix_weight_and_sampling.png)
->>>>>>> e2edd6a3b0859e48d0946ae5ae248a2d975f2de4
-
-Analyse :
+![Confusion Matrix](graph/confusion_matrix.png)Analyse :
 
 * les classes majoritaires sont correctement reconnues ;
 * les erreurs concernent principalement les classes rares ;
@@ -584,3 +520,4 @@ bert-classification-scientific-publication/
 **Ibrahima Gueye**  **Mouhamed Lamine Mbengue** 
 
 Projet réalisé dans le cadre d'un travail pratique de classification de textes scientifiques avec les Transformers.
+
