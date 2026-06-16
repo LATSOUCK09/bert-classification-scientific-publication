@@ -261,8 +261,8 @@ Solution :
 
 Pour regler ce probleme de desequilibre nous avons penser a agir dans deux niveaux differents premiere est la fonction weight_ponderation  qui attaque la fonction Loss et la fonction weighted_sampling qui agit au niveau du DataLoader.
 
-        **La fonction weight_ponderation** calcul les poids qui seront utiliser avec BCEWithLogitsLoss
-        Pour chaque classe, les exemples positifs correspondent aux articles possédant cette étiquette (valeur 1), tandis que les exemples négatifs correspondent aux articles ne possédant pas cette étiquette (valeur 0). Le rapport entre le nombre d'exemples négatifs et positifs est utilisé pour calculer un poids permettant de mieux prendre en compte les classes sous-représentées lors de l'entraînement du modèle.
+*La fonction weight_ponderation* calcul les poids qui seront utiliser avec BCEWithLogitsLoss
+Pour chaque classe, les exemples positifs correspondent aux articles possédant cette étiquette (valeur 1), tandis que les exemples négatifs correspondent aux articles ne possédant pas cette étiquette (valeur 0). Le rapport entre le nombre d'exemples négatifs et positifs est utilisé pour calculer un poids permettant de mieux prendre en compte les classes sous-représentées lors de l'entraînement du modèle.*
 
         ```python
         def weight_ponderation(dataset=None):
@@ -287,9 +287,8 @@ Pour regler ce probleme de desequilibre nous avons penser a agir dans deux nivea
 
         BCEWithLogitsLoss(pos_weight=...)
         ```
-        ```text
-        **La fonction weighted_sampling()** calcule un poids pour chaque article en fonction de la fréquence des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement grâce à un WeightedRandomSampler. Cette approche permet d'améliorer la représentation des classes sous-représentées dans les lots d'entraînement et de limiter les effets du déséquilibre du datase
-        ```
+**La fonction weighted_sampling()** calcule un poids pour chaque article en fonction de la fréquence des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement grâce à un WeightedRandomSampler. Cette approche permet d'améliorer la représentation des classes sous-représentées dans les lots d'entraînement et de limiter les effets du déséquilibre du datase
+
         ```python
         def weighted_sampling(dataset=None):
              if dataset is None:
