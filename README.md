@@ -148,6 +148,7 @@ Sigmoid
 ```python
 AutoTokenizer.from_pretrained("bert-base-uncased")
 ```
+Nous avons utilisé le tokenizer bert-base-uncased afin d'assurer une compatibilité parfaite avec le modèle BERT pré-entraîné du même nom. Ce tokenizer applique la même stratégie de prétraitement que celle utilisée lors de l'entraînement initial du modèle.
 
 Choix effectués :
 
@@ -259,53 +260,53 @@ Computer Science : 8594 exemples
 
 Solution :
 
-Pour regler ce probleme de desequilibre nous avons penser a agir dans deux niveaux differents premiere est la fonction weight_ponderation  qui attaque la fonction Loss et la fonction weighted_sampling qui agit au niveau du DataLoader.
+Pour régler ce problème de déséquilibre des classes, nous avons choisi d'agir à deux niveaux différents. Le premier est la fonction **weight_ponderation**, qui agit sur la fonction de perte (*Loss Function*). Le second est la fonction **weighted_sampling**, qui agit au niveau du **DataLoader** en donnant davantage de chances aux exemples issus des classes les moins représentées d'être sélectionnés lors de l'entraînement.
+
 
 **La fonction weight_ponderation** calcul les poids qui seront utiliser avec BCEWithLogitsLoss
 Pour chaque classe, les exemples positifs correspondent aux articles possédant cette étiquette (valeur 1), tandis que les exemples négatifs correspondent aux articles ne possédant pas cette étiquette (valeur 0). Le rapport entre le nombre d'exemples négatifs et positifs est utilisé pour calculer un poids permettant de mieux prendre en compte les classes sous-représentées lors de l'entraînement du modèle.
 
-        ```python
-        def weight_ponderation(dataset=None):
-            if dataset is None:
+```python
+def weight_ponderation(dataset=None):
+        if dataset is None:
+        raise ValueError(
+        "Le paramètre 'dataset' est requis pour weight_ponderation. "
+        "Passez un DataFrame pandas déjà chargé."
+        )
+
+        drop_columns = [col for col in ["ID", "TITLE", "ABSTRACT"] if col in dataset.columns]
+        label_columns = dataset.drop(columns=drop_columns).columns
+        n_samples = len(dataset)
+        pos_weights = []
+        for col in label_columns:
+        positive_count = dataset[col].sum()
+        negative_count = n_samples - positive_count
+        weights = negative_count / positive_count
+        pos_weights.append(weights)
+
+pos_weights = torch.tensor(pos_weights, dtype=torch.float32)
+return pos_weights
+BCEWithLogitsLoss(pos_weight=...)
+```
+**La fonction weighted_sampling()** calcule un poids pour chaque article en fonction de la fréquence des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement grâce à un WeightedRandomSampler. Cette approche permet d'améliorer la représentation des classes sous-représentées dans les lots d'entraînement et de limiter les effets du déséquilibre du datase
+
+```python
+def weighted_sampling(dataset=None):
+        if dataset is None:
                 raise ValueError(
-                "Le paramètre 'dataset' est requis pour weight_ponderation. "
+                "Le paramètre 'dataset' est requis pour weighted_sampling. "
                 "Passez un DataFrame pandas déjà chargé."
                 )
 
-            drop_columns = [col for col in ["ID", "TITLE", "ABSTRACT"] if col in dataset.columns]
-            label_columns = dataset.drop(columns=drop_columns).columns
-            n_samples = len(dataset)
-            pos_weights = []
-            for col in label_columns:
-                positive_count = dataset[col].sum()
-                negative_count = n_samples - positive_count
-                weights = negative_count / positive_count
-                pos_weights.append(weights)
-
-        pos_weights = torch.tensor(pos_weights, dtype=torch.float32)
-        return pos_weights
-
-        BCEWithLogitsLoss(pos_weight=...)
-        ```
-**La fonction weighted_sampling()** calcule un poids pour chaque article en fonction de la fréquence des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement grâce à un WeightedRandomSampler. Cette approche permet d'améliorer la représentation des classes sous-représentées dans les lots d'entraînement et de limiter les effets du déséquilibre du datase
-
-        ```python
-        def weighted_sampling(dataset=None):
-             if dataset is None:
-                        raise ValueError(
-                        "Le paramètre 'dataset' est requis pour weighted_sampling. "
-                        "Passez un DataFrame pandas déjà chargé."
-                        )
-
-                label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
-                n_samples = len(dataset)
-                class_weights = {col: n_samples / dataset[col].sum() for col in label_columns}
-                sample_weights = []
-                for _, row in dataset.iterrows():
-                        active = [class_weights[col] for col in label_columns if row[col] == 1]
-                        sample_weights.append(np.mean(active))
-                return torch.DoubleTensor(sample_weights)
-        ```       
+        label_columns = dataset.drop(columns=["ID", "TITLE", "ABSTRACT"]).columns
+        n_samples = len(dataset)
+        class_weights = {col: n_samples / dataset[col].sum() for col in label_columns}
+        sample_weights = []
+        for _, row in dataset.iterrows():
+                active = [class_weights[col] for col in label_columns if row[col] == 1]
+                sample_weights.append(np.mean(active))
+        return torch.DoubleTensor(sample_weights)
+```       
 ---
 
 ## Classification multi-label
@@ -353,16 +354,15 @@ Solution :
 
 # 6. Résultats
 
-## Courbes d'entraînement
+## Courbes d'entraînement et de validation
 
-Insérer ici :
 
 ```text
-screenshots/training_curves.png
+Courbes d'entraînement et de validation obtenues avec la pondération des classes (weight_ponderation)
 ```
 
-![Courbes](screenshots/training_curves.png)
-
+![Courbes](graph/loss_curve.png)
+![Courbes](graph/metric_curve.png)
 Les courbes montrent :
 
 * une diminution progressive de la loss
@@ -375,23 +375,23 @@ Les courbes montrent :
 
 | Métrique            | Valeur |
 | ------------------- | ------ |
-| Validation Loss     | XX     |
-| Validation Accuracy | XX     |
-| Validation F1-Score | XX     |
-
-(Remplacer XX par vos résultats réels)
+| Validation Loss     |0.5195  |
+| Validation Accuracy |0.6319  |
+| Validation F1-Score |0.8250  |
+```text
+Métriques finales avec la pondération des classes (weight_ponderation)
+```
 
 ---
 
 ## Matrice de confusion
 
-Insérer ici :
 
 ```text
-screenshots/confusion_matrix.png
+Matrice de confusion obtenues avec la pondération des classes (weight_ponderation)
 ```
 
-![Confusion Matrix](screenshots/confusion_matrix.png)
+![Confusion Matrix](graph/confusion_matrix.png)
 
 Analyse :
 
@@ -413,11 +413,14 @@ L'application permet :
 ## Capture d'écran
 
 ```text
-screenshots/gradio_demo.png
+demonstartion du modele entrainer avec la pondération des classes (weight_ponderation)
 ```
 
-![Gradio Demo](screenshots/gradio_demo.png)
+![Gradio Demo](gradio/demo1.png)
+Ici, nous avons testé notre modèle avec un article d’intelligence artificielle. Comme le montre l'image ci-dessous, le modèle a fourni une prédiction correcte de 95% pour computer science .
 
+![Gradio Demo](gradio/demo2.png)
+Ici, nous avons testé notre modèle avec un article appartenant à une de nos classes rares, la Quantitative Biology. Comme le montre l’image ci-dessous, le modèle a fourni une prédiction correcte à 100 %, malgré les inquiétudes que nous avions concernant le déséquilibre des classes.
 ---
 
 # 8. Installation
