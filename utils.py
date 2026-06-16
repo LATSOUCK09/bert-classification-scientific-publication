@@ -2,9 +2,7 @@ import random
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-
-import dataset
+from sklearn.metrics import accuracy_score, f1_score
 
 
 def set_seed(seed=42):
@@ -64,6 +62,36 @@ def plot_training_history(history, figsize=(10, 5), save_path=None):
 
 
 def weight_ponderation(dataset=None):
+    """
+    Calcule les poids des classes pour une classification multi-label.
+
+    Cette fonction détermine un poids pour chaque classe en utilisant
+    le ratio entre le nombre d'exemples négatifs et positifs. Les poids
+    obtenus sont utilisés avec BCEWithLogitsLoss via le paramètre
+    `pos_weight` afin de réduire l'impact du déséquilibre des classes.
+
+    Formule utilisée :
+        pos_weight = N_negatifs / N_positifs
+
+    Args:
+        dataset (pd.DataFrame):
+            DataFrame contenant les données du dataset. Les colonnes
+            de labels doivent être codées sous forme binaire (0 ou 1).
+
+    Returns:
+        torch.FloatTensor:
+            Tensor contenant un poids pour chaque classe dans le même
+            ordre que les colonnes de labels.
+
+    Raises:
+        ValueError:
+            Si aucun DataFrame n'est fourni.
+
+    Example:
+        >>> pos_weights = weight_ponderation(df)
+        >>> criterion = BCEWithLogitsLoss(pos_weight=pos_weights)
+    """
+
     if dataset is None:
         raise ValueError(
             "Le paramètre 'dataset' est requis pour weight_ponderation. "
@@ -85,6 +113,42 @@ def weight_ponderation(dataset=None):
 
 
 def weighted_sampling(dataset=None):
+
+    """
+    Calcule les poids d'échantillonnage pour un WeightedRandomSampler.
+
+    Cette fonction attribue un poids à chaque article du dataset en
+    fonction des classes auxquelles il appartient. Les articles associés
+    à des classes rares reçoivent un poids plus élevé et ont donc une
+    probabilité plus importante d'être sélectionnés lors de l'entraînement.
+
+    Dans un contexte de classification multi-label, le poids d'un
+    échantillon est calculé comme la moyenne des poids des classes
+    positives auxquelles il appartient.
+
+    Args:
+        dataset (pd.DataFrame):
+            DataFrame contenant les données du dataset ainsi que les
+            colonnes de labels binaires.
+
+    Returns:
+        torch.DoubleTensor:
+            Tensor contenant un poids pour chaque échantillon du dataset.
+            Ce tensor peut être directement utilisé avec
+            torch.utils.data.WeightedRandomSampler.
+
+    Raises:
+        ValueError:
+            Si aucun DataFrame n'est fourni.
+
+    Example:
+        >>> sample_weights = weighted_sampling(df)
+        >>> sampler = WeightedRandomSampler(
+        ...     sample_weights,
+        ...     num_samples=len(sample_weights),
+        ...     replacement=True
+        ... )
+    """
     if dataset is None:
         raise ValueError(
             "Le paramètre 'dataset' est requis pour weighted_sampling. "
