@@ -393,12 +393,11 @@ Métriques finales avec la pondération des classes (weight_ponderation)
 | Validation Loss     |0.5280  |
 | Validation Accuracy |0.6381  |
 | Validation F1-Score |0.8269  |
-```text
-Métriques finales apres combinaison de weight_ponderation et weighted_sampling.
----
 
+  ```text
+  Métriques finales apres combinaison de weight_ponderation et weighted_sampling.
+  ```
 ## Matrice de confusion
-
 
 ```text
 Matrice de confusion obtenues avec la pondération des classes (weight_ponderation)
@@ -410,7 +409,7 @@ Matrice de confusion obtenues avec la pondération des classes (weight_ponderati
  Matrice de confusion combinaison de weight_ponderation et weighted_sampling.
 ```
 ![Confusion Matrix](graph/confusion_matrix_weight_and_sampling.png)
- Matrice de confusion combinaison de weight_ponderation et weighted_sampling.
+
 
 Analyse :
 
