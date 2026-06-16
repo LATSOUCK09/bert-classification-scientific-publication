@@ -59,12 +59,10 @@ Chaque ligne contient :
 | Quantitative Biology | 587         |
 | Quantitative Finance | 249         |
 
-On observe un fort déséquilibre de classes, notamment pour :
+Le dataset présente un fort déséquilibre entre les classes. La classe la plus représentée (Computer Science) contient 8594 exemples tandis que la moins représentée (Quantitative Finance) n'en contient que 249, soit un ratio supérieur à 34:1.Afin de limiter le biais du modèle vers les classes majoritaires, nous sommes passés par deux méthodes:
 
-* Quantitative Biology
-* Quantitative Finance
-
-Ce déséquilibre a été traité grâce à l'utilisation de poids de classes dans la fonction de perte.
+- Une fonction de coût pondérée (***BCEWithLogitsLoss*** avec pos_weight). Cette approche est particulièrement adaptée à la classification multilabel car elle augmente la pénalité associée aux erreurs commises sur les classes rares sans modifier artificiellement la distribution du dataset.
+- ***WeightedRandomSampler*** est une autre stratégie pour lutter contre le déséquilibre des classes. Au lieu de modifier la loss, il modifie la probabilité qu'un échantillon soit tiré dans un batch. Les poids sont calculés pour chaque article à partir des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement.
 
 ## Exemples du dataset
 
@@ -119,8 +117,8 @@ Quantitative Biology
 
 Le projet utilise :
 
-```text
-bert-base-uncased
+```bash 
+BertForMultiLabelClassification
 ```
 
 proposé par Hugging Face.
@@ -132,16 +130,17 @@ Titre + Abstract
         │
 Tokenizer BERT
         │
-bert-base-uncased
+BertForMultiLabelClassification
         │
 Pooler Output (768)
         │
 Linear(768 → 6)
         │
-Sigmoid
+Logits
         │
 6 probabilités
 ```
+Lors de l'inférence, une fonction Sigmoid est appliquée aux logits afin d'obtenir une probabilité indépendante pour chaque classe.
 
 ## Tokenizer
 
@@ -157,8 +156,8 @@ Choix effectués :
 
 Le texte d'entrée est construit comme suit :
 
-```text
-TITLE [SEP] ABSTRACT
+```Bash
+TITLE "[SEP]" ABSTRACT
 ```
 
 ## Tête de classification
@@ -215,7 +214,7 @@ pour compenser le déséquilibre du dataset.
 
 ### Étape 2 : Prétraitement
 
-* Fusion du titre et du résumé
+* Concaténation du titre et du résumé
 * Tokenisation avec BERT
 * Padding et troncature
 
@@ -226,7 +225,7 @@ pour compenser le déséquilibre du dataset.
 
 ### Étape 4 : Entraînement
 
-* Split 80 % / 20 %
+* Split multilabel stratifié 80/20
 * Fine-tuning complet de BERT
 * Sauvegarde du meilleur modèle
 
@@ -259,9 +258,9 @@ Computer Science : 8594 exemples
 
 Solution :
 
-Pour regler ce probleme de desequilibre nous avons penser a agir dans deux niveaux differents premiere est la fonction weight_ponderation  qui attaque la fonction Loss et la fonction weighted_sampling qui agit au niveau du DataLoader.
+Pour regler ce probleme de desequilibre nous avons penser a agir dans deux niveaux differents premiere est la fonction weight_ponderation  qui attaque la fonction Loss et la fonction weighted_sampling qui agit au niveau du sampling des données.
 
-**La fonction weight_ponderation** calcul les poids qui seront utiliser avec BCEWithLogitsLoss
+**La fonction weight_ponderation** calcule les poids qui seront utilisé avec BCEWithLogitsLoss
 Pour chaque classe, les exemples positifs correspondent aux articles possédant cette étiquette (valeur 1), tandis que les exemples négatifs correspondent aux articles ne possédant pas cette étiquette (valeur 0). Le rapport entre le nombre d'exemples négatifs et positifs est utilisé pour calculer un poids permettant de mieux prendre en compte les classes sous-représentées lors de l'entraînement du modèle.
 
         ```python
@@ -281,12 +280,12 @@ Pour chaque classe, les exemples positifs correspondent aux articles possédant 
                 negative_count = n_samples - positive_count
                 weights = negative_count / positive_count
                 pos_weights.append(weights)
+                pos_weights = torch.tensor(pos_weights, dtype=torch.float32)
+                return pos_weights
 
-        pos_weights = torch.tensor(pos_weights, dtype=torch.float32)
-        return pos_weights
 
-        BCEWithLogitsLoss(pos_weight=...)
-        ```
+        BCEWithLogitsLoss(pos_weight=...)```
+
 **La fonction weighted_sampling()** calcule un poids pour chaque article en fonction de la fréquence des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement grâce à un WeightedRandomSampler. Cette approche permet d'améliorer la représentation des classes sous-représentées dans les lots d'entraînement et de limiter les effets du déséquilibre du datase
 
         ```python
@@ -304,8 +303,7 @@ Pour chaque classe, les exemples positifs correspondent aux articles possédant 
                 for _, row in dataset.iterrows():
                         active = [class_weights[col] for col in label_columns if row[col] == 1]
                         sample_weights.append(np.mean(active))
-                return torch.DoubleTensor(sample_weights)
-        ```       
+                return torch.DoubleTensor(sample_weights)```       
 ---
 
 ## Classification multi-label
@@ -346,7 +344,7 @@ Le fine-tuning de BERT est coûteux en calcul.
 
 Solution :
 
-* utilisation du GPU CUDA
+* utilisation du GPU CUDA (**colab**, **kaggle**)
 * batch size adapté à la mémoire disponible
 
 ---
@@ -355,13 +353,8 @@ Solution :
 
 ## Courbes d'entraînement
 
-Insérer ici :
 
-```text
-screenshots/training_curves.png
-```
-
-![Courbes](screenshots/training_curves.png)
+![Courbes](figs/learning_curves_weights_and_sampling.png)
 
 Les courbes montrent :
 
@@ -375,23 +368,17 @@ Les courbes montrent :
 
 | Métrique            | Valeur |
 | ------------------- | ------ |
-| Validation Loss     | XX     |
-| Validation Accuracy | XX     |
-| Validation F1-Score | XX     |
+| Validation Loss     | 0.5280 |
+| Validation Accuracy | 0.6381 |
+| Validation F1-Score | 0.8269 |
 
-(Remplacer XX par vos résultats réels)
 
 ---
 
 ## Matrice de confusion
 
-Insérer ici :
 
-```text
-screenshots/confusion_matrix.png
-```
-
-![Confusion Matrix](screenshots/confusion_matrix.png)
+![Confusion Matrix](figs/confusion_matrix_weight_and_sampling.png)
 
 Analyse :
 
@@ -500,9 +487,9 @@ bert-classification-scientific-publication/
 ├── utils.py
 ├── demo.py
 │
-├── screenshots/
-│   ├── training_curves.png
-│   ├── confusion_matrix.png
+├── figs/
+│   ├── training_curves_weights_and_sampling.png
+│   ├── confusion_matrix_weights_and_sampling.png
 │   └── gradio_demo.png
 │
 ├── requirements.txt
@@ -516,7 +503,6 @@ bert-classification-scientific-publication/
 * Utiliser SciBERT à la place de BERT.
 * Ajuster automatiquement le seuil de décision par classe.
 * Ajouter Precision et Recall par classe.
-* Tester des techniques de Focal Loss.
 * Ajouter un ensemble de test indépendant.
 * Déployer l'application sur Hugging Face Spaces ou Streamlit Cloud.
 
