@@ -59,6 +59,7 @@ Chaque ligne contient :
 | Quantitative Biology | 587         |
 | Quantitative Finance | 249         |
 
+Le dataset présente un fort déséquilibre entre les classes. La classe la plus représentée (Computer Science) contient 8594 exemples tandis que la moins représentée (Quantitative Finance) n'en contient que 249, soit un ratio supérieur à 34:1.Afin de limiter le biais du modèle vers les classes majoritaires, nous sommes passés par deux méthodes:
 
 - Une fonction de coût pondérée (***BCEWithLogitsLoss*** avec pos_weight). Cette approche est particulièrement adaptée à la classification multilabel car elle augmente la pénalité associée aux erreurs commises sur les classes rares sans modifier artificiellement la distribution du dataset.
 - ***WeightedRandomSampler*** est une autre stratégie pour lutter contre le déséquilibre des classes. Au lieu de modifier la loss, il modifie la probabilité qu'un échantillon soit tiré dans un batch. Les poids sont calculés pour chaque article à partir des classes auxquelles il appartient. Les articles associés à des classes rares reçoivent un poids plus élevé et sont donc échantillonnés plus fréquemment lors de l'entraînement.
